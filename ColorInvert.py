@@ -1,16 +1,31 @@
-#! /usr/bin/env python3
+#! python3
 
 import os, sys, os.path
+
+# This appends the directory of the file to system path
+# Prevents Import Error when double clicking .py file
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+
 from PIL import Image
 import PIL.ImageOps
 
-def invert_colors(path):
+# Todo: Make user friendly. Prompt for current directory, if answer is no then prompt for path to run from
+
+# Todo: Fill out Readme with information below:
+# May not work on network locations, copy images to local drive before running
+# Either place color_invert.py into the directory with your images or run it from command line
+# If placing directly in the folder with images, can launch by double clicking. Answer Y to the first prompt about launching from the working directory
+# If running from the command line, run with python 3, and answer N to the first prompt about working directory,
+# then give the path to your images folder as an argument to the second prompt
+
+def invert_colors(path, exclude):
     """Given a folder, inverts all .jpg and .png images in base and subfolders"""
 
     count_rgba = 0  #counts inverted RGBA images
     count_std = 0   #counts inverted standard images
 
-    for dirpath, dirnames, filenames in os.walk(path):  #Walk through subdirectories of given path
+    for dirpath, dirnames, filenames in os.walk(path, topdown=True):  #Walk through subdirectories of given path
+        dirnames[:] = [d for d in dirnames if d not in exclude]
         for file in filenames:
             if ".png" in file or ".jpg" in file:
                 fullpath = os.path.join(dirpath, file)  #Take full path name to each image
@@ -43,26 +58,44 @@ def cmd_launch():
 
 def launch_choices():
 
+    exclude_list = []
+
     # determine whether script is run from image directory or not
     launch_choice = str(
-        input("Are you running color_invert.py from the directory with the images you want to invert? (Y/n)")).lower()
+        input("Are you running color_invert.py from the directory with the images you want to invert? (Y/n): ")).lower()
 
-    # Invert images in working directory
+    # if answer is not y, n, or exit, try again
+    if launch_choice != 'y' and launch_choice != 'n' and launch_choice != 'exit':
+        print("Please only answer Y or n or type exit to quit")
+        launch_choices()
+        return
+
+    elif launch_choice == 'exit':
+        return
+
+
+    exc_choice = str(input("Do you want to exclude any subfolders? (Y/n): ")).lower()
+
+    # prompts for folders to exclude
+    if exc_choice == 'y':
+        print("\nType 'exit' or press Enter when you have listed all folders to be excluded")
+        exc = str(input("Enter subfolder name to exclude (caps-sensitive): "))
+        while exc.lower() != 'exit' and exc:
+            exclude_list.append(exc)
+            exc = str(input("Enter subfolder name to exclude (caps-sensitive): "))
+        print("These are the folders you have chosen to exclude:")
+        print(exclude_list)
+
     if launch_choice == 'y':
-        print(invert_colors(os.getcwd()))
+        print(invert_colors(os.getcwd(), exclude_list))
 
-    # Send to cmd_launch to prompt user for filepath
     elif launch_choice == 'n':
-        print(invert_colors(cmd_launch()))
+        print(invert_colors(cmd_launch(), exclude_list))
 
-    # Give user the option to exit without inverting
     elif launch_choice == 'exit':
         print("Exiting program...")
 
-    # if answer is not y, n, or exit, try again
-    else:
-        print("Please only answer Y or n or type exit to quit")
-        launch_choices()
+
 
 def main():
     path = ''                       # Avoid IOError if no path given, this will be caught with if statement below
