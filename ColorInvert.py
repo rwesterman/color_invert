@@ -24,26 +24,38 @@ def invert_colors(path, exclude):
     count_rgba = 0  #counts inverted RGBA images
     count_std = 0   #counts inverted standard images
 
+    error_list = []
+
     for dirpath, dirnames, filenames in os.walk(path, topdown=True):  #Walk through subdirectories of given path
         dirnames[:] = [d for d in dirnames if d not in exclude]
         for file in filenames:
             if ".png" in file or ".jpg" in file:
-                fullpath = os.path.join(dirpath, file)  #Take full path name to each image
-                image = Image.open(fullpath)            #Open image
+                try:
+                    fullpath = os.path.join(dirpath, file)  #Take full path name to each image
+                    image = Image.open(fullpath)            #Open image
 
-                if image.mode == 'RGBA':                #This is only for RGBA type images
-                    r,g,b,a = image.split()
-                    rgb_image = Image.merge('RGB', (r,g,b))
-                    inverted_image = PIL.ImageOps.invert(rgb_image)
-                    r2,g2,b2 = inverted_image.split()
-                    final_transparent_image = Image.merge('RGBA', (r2,g2,b2,a))
-                    final_transparent_image.save(fullpath)
-                    count_rgba = count_rgba + 1
+                    if image.mode == 'RGBA':                #This is only for RGBA type images
+                        r,g,b,a = image.split()
+                        rgb_image = Image.merge('RGB', (r,g,b))
+                        inverted_image = PIL.ImageOps.invert(rgb_image)
+                        r2,g2,b2 = inverted_image.split()
+                        final_transparent_image = Image.merge('RGBA', (r2,g2,b2,a))
+                        final_transparent_image.save(fullpath)
+                        count_rgba = count_rgba + 1
 
-                else:
-                    inverted_image = PIL.ImageOps.invert(image)
-                    inverted_image.save(fullpath)
-                    count_std = count_std + 1
+                    else:
+                        inverted_image = PIL.ImageOps.invert(image)
+                        inverted_image.save(fullpath)
+                        count_std = count_std + 1
+
+                #Error handling for read-only files
+                except PermissionError as e:
+                    error_list.append(file)
+        # If any errors were caught, this will print the files that couldn't be accessed
+        if error_list:
+            print("The following files could not be accessed, check that they are not read only:")
+            for error in error_list:
+                print(error)
 
     return("Inverted {} RGBA images, and {} standard images".format(count_rgba, count_std))
 
